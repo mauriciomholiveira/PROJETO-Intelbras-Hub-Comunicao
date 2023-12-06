@@ -18,7 +18,7 @@
     box-sizing: border-box;
     margin: 0;
     padding: 0;
-    
+
 }
 
 a {
@@ -60,6 +60,74 @@ main {
     display: flex;
     flex-direction: column;
     align-items: center;
+}
+
+table {
+    width: 80%;
+    border-collapse: collapse;
+    margin: 20px auto;
+}
+
+thead {
+    font-weight: 800;
+    position: sticky;
+    top: 0;
+    background-color: #d3d3d3;
+}
+
+th, td {
+    padding: 5px;
+    border: 1px solid #ddd;
+    text-align: center;
+    white-space: nowrap;
+    max-width: 300px;
+}
+
+th {
+    background-color: #f2f2f2
+}
+
+.logo {
+    width: 150px;
+    margin-top: 15px;
+}
+
+.submit-line {
+    align-items: center;
+    position: relative;
+    width: 200px;
+    margin: 30px auto 10px auto;
+    border: none;
+    border-radius: 10px;
+}
+
+.submit-lente {
+    position: absolute;
+    top: 6px;
+    right: 0;
+    z-index: 10;
+    border: none;
+    background: transparent;
+    outline: none;
+    margin-right: 10px;
+}
+
+.submit-line input {
+    width: 100%;
+    border-radius: 10px;
+    height: 25px;
+    padding-left: 20px;
+    border: solid 1px;
+}
+
+td:nth-child(4).break-word {
+    overflow-wrap: break-word;
+    white-space: pre-line;
+}
+
+.tr:hover {
+    background-color: #04a94b;
+    color: #f1f1f1;
 }
 
 .grid-container {
@@ -207,72 +275,4 @@ main {
         font-size: 1.6em;
         text-align: center;
     }
-}
-
-table {
-  width: 80%;
-  border-collapse: collapse;
-  margin: 20px auto;
-}
-
-thead {
-  font-weight: 800;
-  position: sticky;
-  top: 0;
-  background-color: #d3d3d3;
-}
-
-th, td {
-  padding: 5px;
-  border: 1px solid #ddd;
-  text-align: center;
-  white-space: nowrap;
-  max-width: 300px;
-}
-
-th {
-  background-color: #f2f2f2
-}
-
-.logo {
-  width: 150px;
-  margin-top: 15px;
-}
-
-.submit-line {
-  align-items: center;
-  position: relative;
-  width: 200px;
-  margin: 30px auto 10px auto;
-  border: none;
-  border-radius: 10px;
-}
-
-.submit-lente {
-  position: absolute;
-  top: 6px;
-  right: 0;
-  z-index: 10;
-  border: none;
-  background: transparent;
-  outline: none;
-  margin-right: 10px;
-}
-
-.submit-line input {
-  width: 100%;
-  border-radius: 10px;
-  height: 25px;
-  padding-left: 20px;
-  border: solid 1px;
-}
-
-td:nth-child(4).break-word {
-  overflow-wrap: break-word;
-  white-space: pre-line;
-}
-
-.tr:hover {
-  background-color: #04a94b;
-  color: #f1f1f1;
 }
