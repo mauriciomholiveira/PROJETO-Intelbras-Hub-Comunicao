@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Montagem de Cenário - Impacta</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 20px;
+            max-width: 800px;
+            margin: auto;
+        }
+        h1 {
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        #resultado {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <h1>Simulador de Montagem de Cenário - Impacta</h1>
+    <div class="form-group">
+        <label for="ramaisAnalogicos">Quantos ramais analógicos? (max. 240 ramais)</label>
+        <input type="number" id="ramaisAnalogicos" min="0" max="240">
+    </div>
+    <div class="form-group">
+        <label for="ramaisDigitais">Quantos ramais digitais? (max. 48 ramais)</label>
+        <input type="number" id="ramaisDigitais" min="0" max="48">
+    </div>
+    <div class="form-group">
+        <label for="ramaisIP">Quantos ramais IP? (max. 120 ramais)</label>
+        <input type="number" id="ramaisIP" min="0" max="120">
+    </div>
+    <div class="form-group">
+        <label for="linhasAnalogicas">Quantas linhas analógicas? (max. 24 troncos)</label>
+        <input type="number" id="linhasAnalogicas" min="0" max="24">
+    </div>
+    <div class="form-group">
+        <label for="linhasDigitais">Quantas linhas digitais (E1)? (max. 60 troncos)</label>
+        <input type="number" id="linhasDigitais" min="0" max="60">
+    </div>
+    <div class="form-group">
+        <label for="linhasIP">Quantas linhas IP? (max. 30 troncos)</label>
+        <input type="number" id="linhasIP" min="0" max="30">
+    </div>
+    <div class="form-group">
+        <label for="gravadorChamada">Gravador de chamada?</label>
+        <select id="gravadorChamada">
+            <option value="nao">Não</option>
+            <option value="sim">Sim</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="taficadorChamada">Tarifador de chamada?</label>
+        <select id="taficadorChamada">
+            <option value="nao">Não</option>
+            <option value="sim">Sim</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="licencasGravacao">Quantidade de licenças de gravação:</label>
+        <input type="number" id="licencasGravacao" min="0" max="8">
+    </div>
+    <button onclick="simular()">Simular</button>
+    <div id="resultado"></div>
+<script>
+function simular() {
+    const ramaisAnalogicos = parseInt(document.getElementById('ramaisAnalogicos').value) || 0;
+    const ramaisDigitais = parseInt(document.getElementById('ramaisDigitais').value) || 0;
+    const ramaisIP = parseInt(document.getElementById('ramaisIP').value) || 0;
+    const linhasAnalogicas = parseInt(document.getElementById('linhasAnalogicas').value) || 0;
+    const linhasDigitais = parseInt(document.getElementById('linhasDigitais').value) || 0;
+    const linhasIP = parseInt(document.getElementById('linhasIP').value) || 0;
+    const licencasGravacao = document.getElementById('licencasGravacao').value || 0;
+    const taficadorChamada = document.getElementById('taficadorChamada').value === 'sim';
+    const gravadorChamada = document.getElementById('gravadorChamada').value === 'sim';
+
+    let recomendacao = "";
+    let placas = "";
+    ////////////////////////////////////////////////////////////////////////////
+let centralRecomendadaGlobal = null;
+
+function verificarCapacidadeCentrais(ramaisAnalogicos, ramaisDigitais, juntores, linhasIP, ramaisIp, juntorDigital, gravadorChamada) {
+    const centrais = [
+        { 
+            nome: "Impacta 16", 
+            slotsGenericos: 3, 
+            maxRamaisAnalogicos: 12, 
+            maxRamaisDigitais: 3, 
+            maxJuntores: 0, 
+            maxLinhasIP: 0, 
+            maxRamaisIP: 0, 
+            maxJuntorDigital: 0, 
+            gravadorChamada: false,
+            placasMaximas: { ramalAnalogico: 3, ramalDigital: 3, ramalMisto: 3, generico: 3 },
+            placaMista: false
+        },
+        { 
+            nome: "Impacta 40", 
+            slotsGenericos: 8, 
+            maxRamaisAnalogicos: 32, 
+            maxRamaisDigitais: 8, 
+            maxJuntores: 8, 
+            maxLinhasIP: 0, 
+            maxRamaisIP: 0, 
+            maxJuntorDigital: 0, 
+            gravadorChamada: false,
+            placasMaximas: { ramalAnalogico: 8, ramalDigital: 3, ramalMisto: 8, generico: 8 },
+            placaMista: false
+        },
+        { 
+            nome: "Impacta 68i", 
+            slotsGenericos: 8, 
+            maxRamaisAnalogicos: 32, 
+            maxRamaisDigitais: 8, 
+            maxJuntores: 8, 
+            maxLinhasIP: 30, 
+            maxRamaisIP: 30, 
+            maxJuntorDigital: 30, 
+            gravadorChamada: true,
+            placasMaximas: { ramalAnalogico: 8, ramalDigital: 3, ramalMisto: 8, generico: 8 },
+            placaMista: false
+        },
+        { 
+            nome: "Impacta 140", 
+            slotsGenericos: 6, 
+            maxRamaisAnalogicos: 80, 
+            maxRamaisDigitais: 20, 
+            maxJuntores: 24, 
+            maxLinhasIP: 30, 
+            maxRamaisIP: 120, 
+            maxJuntorDigital: 60, 
+            gravadorChamada: true,
+            placasMaximas: { ramalAnalogico: 5, ramalDigital: 3, ramalMisto: 5, generico: 6 },
+            placaMista: true
+        },
+        { 
+            nome: "Impacta 220", 
+            slotsGenericos: 11, 
+            maxRamaisAnalogicos: 160, 
+            maxRamaisDigitais: 40, 
+            maxJuntores: 24, 
+            maxLinhasIP: 30, 
+            maxRamaisIP: 120, 
+            maxJuntorDigital: 60, 
+            gravadorChamada: true,
+            placasMaximas: { ramalAnalogico: 10, ramalDigital: 3, ramalMisto: 10, generico: 11 },
+            placaMista: true
+        },
+        { 
+            nome: "Impacta 300", 
+            slotsGenericos: 11, 
+            maxRamaisAnalogicos: 240, 
+            maxRamaisDigitais: 40, 
+            maxJuntores: 24, 
+            maxLinhasIP: 30, 
+            maxRamaisIP: 120, 
+            maxJuntorDigital: 60, 
+            gravadorChamada: true,
+            placasMaximas: { ramalAnalogico: 10, ramalDigital: 3, ramalMisto: 10, generico: 11 },
+            placaMista: true
+        }
+    ];
+
+    function verificarCapacidade(central) {
+        let totalSlotsUsados = 0;
+        // Função para calcular placas de ramais analógicos
+        function calcularPlacasRamaisAnalogicos(ramaisAnalogicos, central) {
+            if (central.nome === 'Impacta 16' || central.nome === 'Impacta 40' || central.nome === 'Impacta 68i') {
+                return Math.ceil(ramaisAnalogicos / (central.placaMista ? 4 : 4));
+            } else {
+                return Math.ceil(ramaisAnalogicos / 24); // Assumindo que as maiores usam placas de 24 ramais
+            }
+        }
+        // Supondo que ramaisAnalogicos e ramaisDigitais já estejam definidos
+        
+        if (ramaisAnalogicos % 12 === 0 && ramaisDigitais > 0) {
+            let decrementoAnalogico = Math.floor(ramaisDigitais / 4) * 12;
+            ramaisAnalogicos -= decrementoAnalogico;
+        }
+        let placasRamaisAnalogicos = calcularPlacasRamaisAnalogicos(ramaisAnalogicos, central);
+        let placasRamaisDigitais = Math.ceil(ramaisDigitais / 4);
+        let placasJuntores = Math.ceil(juntores / 8);
+        let placasLinhasIP = linhasIP > 0 ? 1 : 0;
+        let placasRamaisIP = Math.ceil(ramaisIp / 30);
+        let placasJuntorDigital = juntorDigital > 0 ? 1 : 0;
+        let placasGravadorChamada = gravadorChamada ? 1 : 0;
+
+        console.log('ramais analogicos ' + placasRamaisAnalogicos)
+        console.log('ramal digital ' + placasRamaisDigitais)
+        console.log('placa juntor analogico ' + placasJuntores)
+        console.log('linhaIp ' + placasLinhasIP)
+        console.log('E1 ' + placasJuntorDigital)
+        console.log('ramal ip ' + placasRamaisIP)
+        console.log('gravador de chamada' + placasGravadorChamada)
+        
+        if (placasRamaisAnalogicos == 10 && placasRamaisDigitais == 2){
+            placasRamaisAnalogicos -= 1
+        }
+        if (placasRamaisAnalogicos == 4 && placasRamaisDigitais == 2){
+            placasRamaisDigitais -= 1  
+        }
+        if (central.nome == 'Impacta 68i' && ramaisIp <= 30){
+            placasRamaisIP = 0
+        }
+        if (central.nome == 'Impacta 68i' && linhasIP <= 30){
+            placasLinhasIP = 0
+        }
+        if (central.nome == 'Impacta 68i' && juntorDigital <= 30){
+            placasJuntorDigital = 0
+        }
+        if (central.nome == 'Impacta 68i' && juntores <= 8 && juntorDigital != 0){
+            placasJuntores = 0
+        }
+        if (central.nome == 'Impacta 68i' && juntores <= 8 && juntorDigital == 0){
+            placasJuntores = 0
+        }
+        if(ramaisIp > 0){
+            placasRamaisIP = 1
+        }
+        if(linhasIP > 0){
+             placasLinhasIP = 1
+        }
+        if (placasRamaisIP == 1){
+            placasRamaisIP = 0  
+        }
+        if (placasLinhasIP == 1){
+            placasLinhasIP = 0  
+        }
+        if (central.nome == 'Impacta 300' && placasGravadorChamada == 1 || central.nome == 'Impacta 220' && placasGravadorChamada == 1 || central.nome == 'Impacta 140' && placasGravadorChamada == 1){
+            placasGravadorChamada -= 1
+        }
+
+        function calcularPlacas(placas12EmUso, valorTotalRamais) {
+            const capacidadePlaca12 = 12;
+            const capacidadePlaca16 = 16;
+            const capacidadePlaca24 = 24;
+
+            // Calcula quantos ramais estão além do que já está coberto pelas placas de 12 em uso
+            const ramaisRestantes = valorTotalRamais - placas12EmUso * capacidadePlaca12;
+
+            let placas16Necessarias = 0;
+            let placas24Necessarias = 0;
+
+            if (ramaisRestantes > 0) {
+                // Calcula quantas placas de 24 são necessárias para cobrir os ramais restantes
+                placas24Necessarias = Math.floor(ramaisRestantes / capacidadePlaca24);
+                const ramaisRestantesAposPlacas24 = ramaisRestantes % capacidadePlaca24;
+
+                // Calcula quantas placas de 16 são necessárias para cobrir os ramais restantes
+                placas16Necessarias = Math.floor(ramaisRestantesAposPlacas24 / capacidadePlaca16);
+                const ramaisRestantesAposPlacas16 = ramaisRestantesAposPlacas24 % capacidadePlaca16;
+
+                // Se ainda houver ramais restantes após placas de 16, eles precisarão de placas de 24
+                if (ramaisRestantesAposPlacas16 > 0) {
+                    placas24Necessarias += Math.ceil(ramaisRestantesAposPlacas16 / capacidadePlaca24);
+                }
+            }
+
+            return {
+                placas12: placas12EmUso,
+                placas16: placas16Necessarias,
+                placas24: placas24Necessarias
+            };
+        }
+
+        // Exemplo de uso:
+        const placas12EmUso = placasRamaisDigitais;
+        const totalRamais = ramaisAnalogicos; // Altere para testar diferentes cenários
+
+        const resultado = calcularPlacas(placas12EmUso, totalRamais);
+        const placas12Necessarias = resultado.placas12;
+        const placas16Necessarias = resultado.placas16;
+        const placas24Necessarias = resultado.placas24;
+
+        console.log(`Placas de 12 necessárias: ${placas12Necessarias}`);
+        console.log(`Placas de 16 necessárias: ${placas16Necessarias}`);
+        console.log(`Placas de 24 necessárias: ${placas24Necessarias}`);
+
+        
+        if (central.nome == 'Impacta 300' && placasRamaisAnalogicos != (placas24Necessarias + placas16Necessarias) || central.nome == 'Impacta 220' && placasRamaisAnalogicos != (placas24Necessarias + placas16Necessarias) || central.nome == 'Impacta 140' && placasRamaisAnalogicos != (placas24Necessarias + placas16Necessarias)){
+            placasRamaisAnalogicos = placas24Necessarias + placas16Necessarias;
+        }
+        totalSlotsUsados = placasRamaisAnalogicos + placasRamaisDigitais + placasJuntores + placasLinhasIP + placasRamaisIP + placasJuntorDigital + placasGravadorChamada;
+        console.log(totalSlotsUsados)
+
+        if (totalSlotsUsados > central.slotsGenericos) {
+            return false;
+        }
+        if (ramaisAnalogicos > central.maxRamaisAnalogicos) {
+            return false;
+        }
+        if (ramaisDigitais > central.maxRamaisDigitais) {
+            return false;
+        }
+        if (juntores > central.maxJuntores) {
+            return false;
+        }
+        if (linhasIP > central.maxLinhasIP) {
+            return false;
+        }
+        if (ramaisIp > central.maxRamaisIP) {
+            return false;
+        }
+        if (juntorDigital > central.maxJuntorDigital) {
+            return false;
+        }
+        if (gravadorChamada && !central.gravadorChamada) {
+            return false;
+        }
+
+        return true;
+    }
+
+    let centralRecomendada = null;
+
+    for (const central of centrais) {
+        if (verificarCapacidade(central)) {
+            centralRecomendada = central.nome;
+            centralRecomendadaGlobal = central.nome;
+            break;
+        }
+    }
+
+    if (centralRecomendada) {
+        console.log(`Central recomendada: ${centralRecomendada}`);
+    } else {
+        console.log("Nenhuma central atende aos requisitos.");
+    }
+}
+// Exemplo de chamada da função
+verificarCapacidadeCentrais(ramaisAnalogicos, ramaisDigitais, linhasAnalogicas, linhasIP, ramaisIP, linhasDigitais, gravadorChamada);
+
+// Utilize a variável global fora da função
+let central = `${centralRecomendadaGlobal}`;
+console.log(`Central armazenada para análise: ${central}`);
+
+/////////////////////////////////////////////////////////////////////////////
+    // Verificar recomendação com base nos requisitos de cada plataforma
+    if (ramaisAnalogicos == 0 && ramaisDigitais == 0 && ramaisIP == 0 && linhasAnalogicas == 0 && linhasDigitais == 0 && linhasIP == 0 ) {
+        recomendacao = "Nenhuma plataforma disponível para os valores inseridos.";
+    }else if (ramaisAnalogicos <= 12 && ramaisDigitais <= 8 && ramaisIP === 0 && linhasAnalogicas <= 4 && linhasDigitais === 0 && linhasIP === 0 && central == 'Impacta 16') {
+        recomendacao = "Impacta 16";
+        placas = calcularPlacas(16, ramaisAnalogicos, ramaisDigitais, ramaisIP, linhasAnalogicas, linhasDigitais, linhasIP);
+    } else if (ramaisAnalogicos <= 32 && ramaisDigitais <= 8 && ramaisIP === 0 && linhasAnalogicas <= 8 && linhasDigitais === 0 && linhasIP === 0 && central == 'Impacta 40') {
+        recomendacao = "Impacta 40";
+        placas = calcularPlacas(40, ramaisAnalogicos, ramaisDigitais, ramaisIP, linhasAnalogicas, linhasDigitais, linhasIP);
+    } else if (ramaisAnalogicos <= 32 && ramaisDigitais <= 8 && ramaisIP <= 30 && linhasAnalogicas <= 8 && linhasDigitais <= 30 && linhasIP <= 30 && central == 'Impacta 68i') {
+        recomendacao = "Impacta 68i";
+        placas = calcularPlacas(68, ramaisAnalogicos, ramaisDigitais, ramaisIP, linhasAnalogicas, linhasDigitais, linhasIP);
+    } else if (ramaisAnalogicos <= 80 && ramaisDigitais <= 20 && ramaisIP <= 120 && linhasAnalogicas <= 24 && linhasDigitais <= 60 && linhasIP <= 30 && central == 'Impacta 140') {
+        recomendacao = "Impacta 140";
+        placas = calcularPlacas(140, ramaisAnalogicos, ramaisDigitais, ramaisIP, linhasAnalogicas, linhasDigitais, linhasIP);
+    } else if (ramaisAnalogicos <= 160 && ramaisDigitais <= 40 && ramaisIP <= 120 && linhasAnalogicas <= 24 && linhasDigitais <= 60 && linhasIP <= 30 && central == 'Impacta 220') {
+        recomendacao = "Impacta 220";
+        placas = calcularPlacas(220, ramaisAnalogicos, ramaisDigitais, ramaisIP, linhasAnalogicas, linhasDigitais, linhasIP);
+    } else if (ramaisAnalogicos <= 240 && ramaisDigitais <= 40 && ramaisIP <= 120 && linhasAnalogicas <= 24 && linhasDigitais <= 60 && linhasIP <= 30 && central == 'Impacta 300') {
+        recomendacao = "Impacta 300";
+        placas = calcularPlacas(300, ramaisAnalogicos, ramaisDigitais, ramaisIP, linhasAnalogicas, linhasDigitais, linhasIP);
+    } else {
+        recomendacao = "Nenhuma plataforma disponível para os valores inseridos.";
+    }
+
+
+    // Verificar necessidade de placas adicionais para IP e gravador de chamada
+    if (ramaisIP > 0 || linhasIP > 0) {
+        if (ramaisIP <= 30 && recomendacao == "Impacta 68i") {
+            if (ramaisIP >= 21 && ramaisIP <= 30){
+                placas += `<br/>1 Placa ICIP, 3 Codec (Já vem com 10 licenças de ramais e 10 licenças de juntores)<br>`;
+            }else if (ramaisIP >= 11 && ramaisIP <= 20){
+                placas += `<br/>1 Placa ICIP, 2 Codec (Já vem com 10 licenças de ramais e 10 licenças de juntores)<br>`;
+            }else{
+                placas += `<br/>1 Placa ICIP, 1 Codec (Já vem com 10 licenças de ramais e 10 licenças de juntores)<br>`;
+            }
+            
+        } else if ((ramaisIP <= 120 && recomendacao == "Impacta 140" || linhasIP <= 30 && recomendacao == "Impacta 140") || 
+                    (ramaisIP <= 120 && recomendacao == "Impacta 220" || linhasIP <= 30 && recomendacao == "Impacta 220") || 
+                    (ramaisIP <= 120 && recomendacao == "Impacta 300" || linhasIP <= 30 && recomendacao == "Impacta 300")) {
+                    // A chave de hardware já vem com 10 licenças de ramais e 4 licenças de juntores
+                    const licencasRamaisIncluidas = 10;
+                    const licencasJuntoresIncluidas = 4;
+                    
+                    // Calcular quantas licenças adicionais são necessárias
+                    const licencasRamaisAdicionais = ramaisIP > licencasRamaisIncluidas ? ramaisIP - licencasRamaisIncluidas : 0;
+                    const licencasJuntoresAdicionais = linhasIP > licencasJuntoresIncluidas ? linhasIP - licencasJuntoresIncluidas : 0;
+                    
+                    // Calcular a quantidade de codecs necessários para ramais
+                    const codecsRamais = Math.ceil(ramaisIP / 40);
+
+                    // Calcular a quantidade de codecs necessários para juntores
+                    let codecsJuntores;
+                    if (linhasIP <= 10) {
+                        codecsJuntores = 1;
+                    } else if (linhasIP <= 20) {
+                        codecsJuntores = 2;
+                    } else {
+                        codecsJuntores = 3;
+                    }
+
+                    // A quantidade final de codecs será a maior entre as duas necessidades
+                    const quantidadeCodecs = Math.max(codecsRamais, codecsJuntores);
+
+                    // Adicionar placa ICIP e codecs
+                    placas += `<br/>1 Placa ICIP, ${quantidadeCodecs} Codec${quantidadeCodecs > 1 ? 's' : ''}, 1 Chave de hardware`;
+                    // Informar ao usuário sobre as licenças adicionais necessárias
+                    if (licencasRamaisAdicionais > 0 || licencasJuntoresAdicionais > 0) {
+                        placas += ` (Precisa adquirir mais `;
+                        
+                        if (licencasRamaisAdicionais > 0) {
+                            placas += `${licencasRamaisAdicionais} licença${licencasRamaisAdicionais > 1 ? 's' : ''} de ramal`;
+                        }
+                        
+                        if (licencasRamaisAdicionais > 0 && licencasJuntoresAdicionais > 0) {
+                            placas += ` e `;
+                        }
+                        
+                        if (licencasJuntoresAdicionais > 0) {
+                            placas += `${licencasJuntoresAdicionais} licença${licencasJuntoresAdicionais > 1 ? 's' : ''} de junctor`;
+                        }
+                        
+                        placas += `)<br/>`;
+                    }
+                }
+
+    }
+
+    // Verificar necessidade de gravador de chamada
+    if (gravadorChamada) {
+        if (recomendacao.includes("Impacta 68i")) {
+            if (licencasGravacao <= 4) {
+                placas += "Gravador de chamada: Não são necessárias licenças adicionais.<br>";
+            } else if (licencasGravacao > 4 && licencasGravacao <= 8) {
+                placas += `Gravador de chamada: É necessário adquirir mais ${licencasGravacao - 4} licença(s) adicional(is).<br>`;
+                placas += "Cartão de memória máximo 32GB classe 10, chave de hardware do ICR, cabo USB(não pode ser para comunicação) e um modo de comunicação com a central.<br>";
+            } else {
+                placas += "Gravador de chamada: É possível adquirir no máximo 8 licenças.<br>";
+            }
+        } else if (recomendacao.includes("Impacta 140") || recomendacao.includes("Impacta 220") || recomendacao.includes("Impacta 300")) {
+            if (licencasGravacao >= 1 && licencasGravacao <= 8){
+                placas += `Gravador de chamada: É necessário adquirir ${licencasGravacao}licenças.<br>`;
+                placas += "Cartão de memória máximo 32GB classe 10, chave de hardware do ICR, cabo USB(não pode ser para comunicação) e um modo de comunicação com a central.<br>";
+            }
+            else {
+                placas += "Gravador de chamada: É possível adquirir no máximo 8 licenças.<br>";
+            }
+        }
+    }
+    // Verificar necessidade do tarifador
+    if (taficadorChamada) {
+        placas += "É necessario chave de hardware do controller Pro/Corporate";
+    }
+    document.getElementById('resultado').innerHTML = `<h2>Recomendação: ${recomendacao}</h2><p>${placas}</p>`;
+}
+function calcularPlacas(modelo, ramaisAnalogicos, ramaisDigitais, ramaisIP, linhasAnalogicas, linhasDigitais, linhasIP) {
+    let placas = "";
+    //Mexer aqui para logica de placas das centrais ou seja indicar se passar a quantidade de slot 
+    placas += `<strong>Placas necessárias para o modelo ${modelo}:</strong><br>`;
+    
+    // Cálculos para placas de acordo com o modelo
+    switch (modelo) {
+        case 16:
+            // Limites e capacidades para Impacta 16
+            const capacidadeTroncoAnalogico16 = 2;
+            const maxSlotsTroncos16 = 2;
+            const totalSlots = 3; // Número total de slots disponíveis
+            // Capacidade das placas
+            const capacidadePlacaMista = 4; // Capacidade de uma placa mista
+
+            // Limites de ramais analógicos com base nos ramais digitais
+            let maxRamaisAnalogicos;
+            if (ramaisDigitais === 0) {
+                maxRamaisAnalogicos = 12;
+            } else if (ramaisDigitais === 1) {
+                maxRamaisAnalogicos = 11;
+            } else if (ramaisDigitais === 2) {
+                maxRamaisAnalogicos = 10;
+            } else if (ramaisDigitais === 3) {
+                maxRamaisAnalogicos = 9;
+            }
+
+            // Calcula o número de placas necessárias
+            let placasNecessarias = 0;
+           // Verifica se há necessidade de placa mista (se há ramal digital)
+            if (ramaisDigitais > 0) {
+                if (ramaisAnalogicos >= 9 && ramaisAnalogicos <= 12){
+                    placasNecessarias = Math.ceil(ramaisAnalogicos / capacidadePlacaMista)
+                }else{
+                    // Se há ramal digital, apenas uma placa mista é necessária
+                    placasNecessarias = ramaisDigitais;
+                }
+            }else {
+                // Se não há ramais digitais, calcula o número de placas analógicas necessárias
+                if (ramaisAnalogicos > 0) {
+                    placasNecessarias = Math.ceil(ramaisAnalogicos / capacidadePlacaMista);
+                }else{
+                    placasNecessarias = Math.ceil(ramaisAnalogicos / capacidadePlacaMista)
+                }
+                if(ramaisAnalogicos == 12){
+                    placasNecessarias = Math.ceil(ramaisAnalogicos / 4)
+
+                }
+            }
+
+            // Calcula as placas de troncos analógicos
+            let placasTroncosAnalogicos16 = Math.ceil(linhasAnalogicas / capacidadeTroncoAnalogico16);
+            if (placasTroncosAnalogicos16 > maxSlotsTroncos16) {
+                placasTroncosAnalogicos16 = maxSlotsTroncos16; // Limitado pelo número de slots disponíveis
+            }
+
+            // Exibir os resultados
+            if (placasNecessarias > totalSlots) {
+                placas +=`Configuração inválida. Excede o número máximo de slots.`;
+            }else {
+                maxRamaisAna = 12
+                maxRamaisDigital = 3
+                if (ramaisDigitais == 1 && ramaisAnalogicos >=  4 && ramaisAnalogicos <=  11){
+                    if (ramaisAnalogicos > maxRamaisAna - 9 && ramaisAnalogicos <= maxRamaisAna - 5){
+                        placas += `Placa(s) mistas necessarias: ${placasNecessarias} e Placa(s) analogicas ${placasNecessarias}<br>`;
+                        placas += `Para comunicação temos também a placa Ethernet como opcional na central`
+                    }else if (ramaisAnalogicos == maxRamaisAna - 4){
+                        placas += `Placa(s) mistas necessarias: ${placasNecessarias} e Placa(s) analogicas ${placasNecessarias + 1}<br>`;
+                        placas += `Para comunicação temos também a placa Ethernet como opcional na central`
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 9){
+                        placas += `Placa(s) mistas necessarias: ${placasNecessarias}<br>`;
+                        placas += `Para comunicação temos também a placa Ethernet como opcional na central`
+                    }else{
+                        placas += `Placa(s) mistas necessarias: ${placasNecessarias - 2} e Placa(s) analogicas ${placasNecessarias - 1}<br>`;
+                        placas += `Para comunicação temos também a placa Ethernet como opcional na central`
+                    }
+                    
+                }else if (ramaisDigitais == maxRamaisDigital - 1 && ramaisAnalogicos >= maxRamaisAna - 5 && ramaisAnalogicos <= maxRamaisAna - 2){
+                    if (ramaisAnalogicos <= maxRamaisAna - 5){
+                        placas += `Placa(s) mistas necessarias: ${placasNecessarias} e Placa(s) analogicas ${placasNecessarias - 1}<br>`;
+                        placas += `Para comunicação temos também a placa Ethernet como opcional na central`
+                    }else if (ramaisAnalogicos == maxRamaisAna - 4){
+                        placas += `Placa(s) mistas necessarias: ${placasNecessarias} e Placa(s) analogicas ${placasNecessarias - 1}<br>`;
+                        placas += `Para comunicação temos também a placa Ethernet como opcional na central`
+                    }else{
+                        placas += `Placa(s) mistas necessarias: ${placasNecessarias - 1} e Placa(s) analogicas ${placasNecessarias - 2}<br>`;
+                        placas += `Para comunicação temos também a placa Ethernet como opcional na central`
+                    }
+                    
+                }else if (ramaisDigitais == maxRamaisDigital && ramaisAnalogicos <= maxRamaisAna - 3){
+                    placas += `Placa(s) mistas necessarias: ${placasNecessarias}<br>`;
+                    placas += `Para comunicação temos também a placa Ethernet como opcional na central`
+                }else if (ramaisDigitais > 0 && ramaisAnalogicos <=  maxRamaisAna - 6){
+                    placas += `Placa(s) mistas necessarias: ${placasNecessarias}<br>`;
+                    placas += `Para comunicação temos também a placa Ethernet como opcional na central`
+                }else if (ramaisDigitais > 0 && ramaisAnalogicos <=  maxRamaisAna - 3){
+                    placas += `Placa(s) mistas necessarias: ${placasNecessarias}<br>`
+                    placas += `Para comunicação temos também a placa Ethernet como opcional na central`
+                }else{
+                    if (ramaisAnalogicos > maxRamaisAnalogicos || ramaisDigitais > 3) {
+                        placas += "Número de ramais excede os limites permitidos";
+                    }else{
+                        placas += `Para comunicação temos também a placa Ethernet como opcional na central<br/>`
+                        placas += `Placa(s) analogicas necessária(s): ${placasNecessarias}<br>`;
+                    }
+                }
+                if (placasTroncosAnalogicos16 > 0){
+                    placas += `Troncos Analógicos: ${placasTroncosAnalogicos16} placas de juntores<br>`;
+                }
+            }
+            break;
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////            
+        case 40:
+            const totalSlots1 = 8; // Número total de slots disponíveis
+            // Capacidade das placas
+            const capacidadePlacaMista1 = 4; // Capacidade de uma placa mista
+
+            // Limites de ramais analógicos com base nos ramais digitais
+            let maxRamaisAnalogicos1;
+            if (ramaisDigitais === 0) {
+                maxRamaisAnalogicos1 = 32;
+            } else if (ramaisDigitais === 1) {
+                maxRamaisAnalogicos1 = 31;
+            } else if (ramaisDigitais === 2) {
+                maxRamaisAnalogicos1 = 30;
+            } else if (ramaisDigitais === 3) {
+                maxRamaisAnalogicos1 = 29;
+            } else if (ramaisDigitais === 4) {
+                maxRamaisAnalogicos1 = 28;
+            } else if (ramaisDigitais === 5) {
+                maxRamaisAnalogicos1 = 27;
+            } else if (ramaisDigitais === 6) {
+                maxRamaisAnalogicos1 = 26;
+            } else if (ramaisDigitais === 7) {
+                maxRamaisAnalogicos1 = 25;
+            } else if (ramaisDigitais === 8) {
+                maxRamaisAnalogicos1 = 24;
+            }
+            
+
+            // Calcula o número de placas necessárias
+            let placasNecessarias1 = 0;
+
+           // Verifica se há necessidade de placa mista (se há ramal digital)
+            if (ramaisDigitais > 0) {
+                // Se há ramal digital, apenas uma placa mista é necessária
+                placasNecessarias1 = ramaisDigitais;
+            }else {
+                // Se não há ramais digitais, calcula o número de placas analógicas necessárias
+                if (ramaisAnalogicos > 0) {
+                    placasNecessarias1 = Math.ceil(ramaisAnalogicos / capacidadePlacaMista1);
+                }else{
+                    placasNecessarias1 = Math.ceil(ramaisAnalogicos / capacidadePlacaMista1)
+                }
+                if(ramaisAnalogicos == 12){
+                    placasNecessarias1 = Math.ceil(ramaisAnalogicos / 4)
+
+                }
+            }
+
+            // Verifica se o número de placas necessárias excede os slots disponíveis
+            if (ramaisAnalogicos > maxRamaisAnalogicos1 || ramaisDigitais > 8) {
+                placas = "Número de ramais excede os limites permitidos";
+            }else {
+                maxRamaisAna = 32
+                maxRamaisDigital = 8
+                if (ramaisDigitais == maxRamaisDigital - 7 && ramaisAnalogicos >=  4 && ramaisAnalogicos <=  maxRamaisAna - 1){
+                    if (ramaisAnalogicos > maxRamaisAna - 29 && ramaisAnalogicos <= maxRamaisAna - 25){
+                        placas += `1Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1} e Placa(s) analogicas ${placasNecessarias1}`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 24){
+                        placas += `2Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias} e Placa(s) analogicas ${placasNecessarias + 1}`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 20){
+                        placas += `3Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1} e Placa(s) analogicas ${placasNecessarias1 + 2}`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 16){
+                        placas += `4Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1} e Placa(s) analogicas ${placasNecessarias1 + 3}`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 12){
+                        placas += `5Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1} e Placa(s) analogicas ${placasNecessarias1 + 4}`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 8){
+                        placas += `6Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1} e Placa(s) analogicas ${placasNecessarias1 + 5}`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 4){
+                        placas += `7Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1} e Placa(s) analogicas ${placasNecessarias1 + 6}`;
+                    }else{
+                        placas += `8Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1} e Placa(s) analogicas ${placasNecessarias1 + 6}`;
+                    }
+                    
+                }else if (ramaisDigitais == maxRamaisDigital - 6 && ramaisAnalogicos >= maxRamaisAna - 25 && ramaisAnalogicos <= maxRamaisAna - 2){
+                    if (ramaisAnalogicos > maxRamaisAna - 29 && ramaisAnalogicos <= maxRamaisAna - 25){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1} e Placa(s) analogicas ${placasNecessarias1 - 1}`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 24){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1} e Placa(s) analogicas ${placasNecessarias1 + 1}`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 20){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1} e Placa(s) analogicas ${placasNecessarias1}`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 16){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1} e Placa(s) analogicas ${placasNecessarias1 + 1}`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 12){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1} e Placa(s) analogicas ${placasNecessarias1 + 2}`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 8){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1} e Placa(s) analogicas ${placasNecessarias1 + 3}`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 4){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1} e Placa(s) analogicas ${placasNecessarias1 + 4}`;
+                    }else{
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1} e Placa(s) analogicas ${placasNecessarias1 + 4}`;
+                    }
+                    
+                }else if (ramaisDigitais == maxRamaisDigital - 5 && ramaisAnalogicos >= maxRamaisAna - 22 && ramaisAnalogicos <= maxRamaisAna - 3){
+                    if (ramaisAnalogicos > maxRamaisAna - 23 && ramaisAnalogicos <= maxRamaisAna - 22){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1} e Placa(s) analogicas ${placasNecessarias1 - 2}`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 15){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1} e Placa(s) analogicas ${placasNecessarias1 - 1}`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 11){
+                        placas += `configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1} e Placa(s) analogicas ${placasNecessarias1}`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 7){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1} e Placa(s) analogicas ${placasNecessarias1 + 1}`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 6){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1} e Placa(s) analogicas ${placasNecessarias1 + 2}`;
+                    }else{
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1} e Placa(s) analogicas ${placasNecessarias1 + 2}`;
+                    }
+                    
+                }else if (ramaisDigitais == maxRamaisDigital - 4 && ramaisAnalogicos >= maxRamaisAna - 19 && ramaisAnalogicos <= maxRamaisAna - 4){
+                    if (ramaisAnalogicos <= maxRamaisAna - 19){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1} e Placa(s) analogicas ${placasNecessarias1 - 3}`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 15){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1} e Placa(s) analogicas ${placasNecessarias1 - 2}`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 11){
+                        placas += `configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1} e Placa(s) analogicas ${placasNecessarias1 - 1}`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 7){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1} e Placa(s) analogicas ${placasNecessarias1}`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 3){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1} e Placa(s) analogicas ${placasNecessarias1}`;
+                    }
+                    
+                }else if (ramaisDigitais == maxRamaisDigital - 3 && ramaisAnalogicos >= maxRamaisAna - 16 && ramaisAnalogicos <= maxRamaisAna - 5){
+                    if (ramaisAnalogicos <= maxRamaisAna - 16){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1} e Placa(s) analogicas ${placasNecessarias1 - 4}`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 12){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1} e Placa(s) analogicas ${placasNecessarias1 - 3}`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 8){
+                        placas += `configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1} e Placa(s) analogicas ${placasNecessarias1 - 2}`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 4){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1} e Placa(s) analogicas ${placasNecessarias1 - 2}`;
+                    }
+                    
+                }else if (ramaisDigitais == maxRamaisDigital - 2 && ramaisAnalogicos >= maxRamaisAna - 13 && ramaisAnalogicos <= maxRamaisAna - 6){
+                    if (ramaisAnalogicos <= maxRamaisAna - 13){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1} e Placa(s) analogicas ${placasNecessarias1 - 5}`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 9){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1} e Placa(s) analogicas ${placasNecessarias1 - 4}`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 6){
+                        placas += `configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1} e Placa(s) analogicas ${placasNecessarias1 - 4}`;
+                    }
+                    
+                }else if (ramaisDigitais == maxRamaisDigital - 1 && ramaisAnalogicos >= maxRamaisAna - 10 && ramaisAnalogicos <= maxRamaisAna - 7){
+                    if (ramaisAnalogicos <= maxRamaisAna - 5){
+                        placas += `19Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1} e Placa(s) analogicas ${placasNecessarias1 - 6}`;
+                    }else if (ramaisAnalogicos == maxRamaisAna - 4){
+                        placas += `20Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1} e Placa(s) analogicas ${placasNecessarias1 - 6}`;
+                    }
+                    
+                }else if (ramaisDigitais == maxRamaisDigital && ramaisAnalogicos <= maxRamaisAna - 3){
+                    placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1}`;
+                }else if (ramaisDigitais > 0 && ramaisAnalogicos <=  maxRamaisAna - 6){
+                    placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1}`;
+                }else if (ramaisDigitais > 0 && ramaisAnalogicos <=  maxRamaisAna - 3){
+                    placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1}`;
+                }else{
+                    placas += `Configuração válida! Placa(s) analogicas necessária(s): ${placasNecessarias1}`;
+                }
+            }
+            if (linhasAnalogicas > 0){
+                placas += `<br/>Linhas Analógicas: ${Math.ceil(linhasAnalogicas / 2)} placas<br>`;
+            }
+            break;
+        case 68:
+
+        const totalSlots2 = 8; // Número total de slots disponíveis
+            // Capacidade das placas
+            const capacidadePlacaMista2 = 4; // Capacidade de uma placa mista
+
+            // Limites de ramais analógicos com base nos ramais digitais
+            let maxRamaisAnalogicos2;
+            if (ramaisDigitais === 0) {
+                maxRamaisAnalogicos2 = 32;
+            } else if (ramaisDigitais === 1) {
+                maxRamaisAnalogicos2 = 31;
+            } else if (ramaisDigitais === 2) {
+                maxRamaisAnalogicos2 = 30;
+            } else if (ramaisDigitais === 3) {
+                maxRamaisAnalogicos2 = 29;
+            } else if (ramaisDigitais === 4) {
+                maxRamaisAnalogicos2 = 28;
+            } else if (ramaisDigitais === 5) {
+                maxRamaisAnalogicos2 = 27;
+            } else if (ramaisDigitais === 6) {
+                maxRamaisAnalogicos2 = 26;
+            } else if (ramaisDigitais === 7) {
+                maxRamaisAnalogicos2 = 25;
+            } else if (ramaisDigitais === 8) {
+                maxRamaisAnalogicos2 = 24;
+            }
+            
+
+            // Calcula o número de placas necessárias
+            let placasNecessarias2 = 0;
+
+           // Verifica se há necessidade de placa mista (se há ramal digital)
+            if (ramaisDigitais > 0) {
+                // Se há ramal digital, apenas uma placa mista é necessária
+                placasNecessarias2 = ramaisDigitais;
+            }else {
+                // Se não há ramais digitais, calcula o número de placas analógicas necessárias
+                if (ramaisAnalogicos > 0) {
+                    placasNecessarias2 = Math.ceil(ramaisAnalogicos / capacidadePlacaMista2);
+                }else{
+                    placasNecessarias2 = Math.ceil(ramaisAnalogicos / capacidadePlacaMista2)
+                }
+                if(ramaisAnalogicos == 12){
+                    placasNecessarias2 = Math.ceil(ramaisAnalogicos / 4)
+
+                }
+            }
+
+            // Verifica se o número de placas necessárias excede os slots disponíveis
+            if (ramaisAnalogicos > maxRamaisAnalogicos2 || ramaisDigitais > 8) {
+                placas = "Número de ramais excede os limites permitidos";
+            }else {
+                maxRamaisAna = 32
+                maxRamaisDigital = 8
+                if (ramaisDigitais == maxRamaisDigital - 7 && ramaisAnalogicos >=  4 && ramaisAnalogicos <=  maxRamaisAna - 1){
+                    if (ramaisAnalogicos > maxRamaisAna - 29 && ramaisAnalogicos <= maxRamaisAna - 25){
+                        placas += `1Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2} e Placa(s) analogicas ${placasNecessarias2}<br/>`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 24){
+                        placas += `2Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2} e Placa(s) analogicas ${placasNecessarias2 + 1}<br/>`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 20){
+                        placas += `3Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2} e Placa(s) analogicas ${placasNecessarias2 + 2}<br/>`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 16){
+                        placas += `4Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2} e Placa(s) analogicas ${placasNecessarias2 + 3}<br/>`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 12){
+                        placas += `5Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2} e Placa(s) analogicas ${placasNecessarias2 + 4}<br/>`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 8){
+                        placas += `6Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2} e Placa(s) analogicas ${placasNecessarias2 + 5}<br/>`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 4){
+                        placas += `7Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2} e Placa(s) analogicas ${placasNecessarias2 + 6}<br/>`;
+                    }else{
+                        placas += `8Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2} e Placa(s) analogicas ${placasNecessarias2 + 6}<br/>`;
+                    }
+                    
+                }else if (ramaisDigitais == maxRamaisDigital - 6 && ramaisAnalogicos >= maxRamaisAna - 25 && ramaisAnalogicos <= maxRamaisAna - 2){
+                    if (ramaisAnalogicos > maxRamaisAna - 29 && ramaisAnalogicos <= maxRamaisAna - 25){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2} e Placa(s) analogicas ${placasNecessarias2 - 1}<br/>`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 24){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2} e Placa(s) analogicas ${placasNecessarias2 + 1}<br/>`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 20){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2} e Placa(s) analogicas ${placasNecessarias2}<br/>`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 16){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2} e Placa(s) analogicas ${placasNecessarias2 + 1}<br/>`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 12){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2} e Placa(s) analogicas ${placasNecessarias2 + 2}<br/>`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 8){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2} e Placa(s) analogicas ${placasNecessarias2 + 3}<br/>`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 4){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2} e Placa(s) analogicas ${placasNecessarias2 + 4}<br/>`;
+                    }else{
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2} e Placa(s) analogicas ${placasNecessarias2 + 4}<br/>`;
+                    }
+                    
+                }else if (ramaisDigitais == maxRamaisDigital - 5 && ramaisAnalogicos >= maxRamaisAna - 22 && ramaisAnalogicos <= maxRamaisAna - 3){
+                    if (ramaisAnalogicos > maxRamaisAna - 23 && ramaisAnalogicos <= maxRamaisAna - 22){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2} e Placa(s) analogicas ${placasNecessarias2 - 2}<br/>`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 15){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2} e Placa(s) analogicas ${placasNecessarias2 - 1}<br/>`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 11){
+                        placas += `configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2} e Placa(s) analogicas ${placasNecessarias2}<br/>`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 7){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2} e Placa(s) analogicas ${placasNecessarias2 + 1}<br/>`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 6){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2} e Placa(s) analogicas ${placasNecessarias2 + 2}<br/>`;
+                    }else{
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2} e Placa(s) analogicas ${placasNecessarias2 + 2}<br/>`;
+                    }
+                    
+                }else if (ramaisDigitais == maxRamaisDigital - 4 && ramaisAnalogicos >= maxRamaisAna - 19 && ramaisAnalogicos <= maxRamaisAna - 4){
+                    if (ramaisAnalogicos <= maxRamaisAna - 19){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2} e Placa(s) analogicas ${placasNecessarias2 - 3}<br/>`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 15){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2} e Placa(s) analogicas ${placasNecessarias2 - 2}<br/>`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 11){
+                        placas += `configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2} e Placa(s) analogicas ${placasNecessarias2 - 1}<br/>`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 7){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2} e Placa(s) analogicas ${placasNecessarias2}<br/>`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 3){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2} e Placa(s) analogicas ${placasNecessarias2}<br/>`;
+                    }
+                    
+                }else if (ramaisDigitais == maxRamaisDigital - 3 && ramaisAnalogicos >= maxRamaisAna - 16 && ramaisAnalogicos <= maxRamaisAna - 5){
+                    if (ramaisAnalogicos <= maxRamaisAna - 16){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias1} e Placa(s) analogicas ${placasNecessarias2 - 4}<br/>`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 12){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2} e Placa(s) analogicas ${placasNecessarias2 - 3}<br/>`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 8){
+                        placas += `configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2} e Placa(s) analogicas ${placasNecessarias2 - 2}<br/>`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 4){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2} e Placa(s) analogicas ${placasNecessarias2 - 2}<br/>`;
+                    }
+                    
+                }else if (ramaisDigitais == maxRamaisDigital - 2 && ramaisAnalogicos >= maxRamaisAna - 13 && ramaisAnalogicos <= maxRamaisAna - 6){
+                    if (ramaisAnalogicos <= maxRamaisAna - 13){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2} e Placa(s) analogicas ${placasNecessarias2 - 5}<br/>`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 9){
+                        placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2} e Placa(s) analogicas ${placasNecessarias2 - 4}<br/>`;
+                    }else if (ramaisAnalogicos <= maxRamaisAna - 6){
+                        placas += `configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2} e Placa(s) analogicas ${placasNecessarias2 - 4}<br/>`;
+                    }
+                    
+                }else if (ramaisDigitais == maxRamaisDigital - 1 && ramaisAnalogicos >= maxRamaisAna - 10 && ramaisAnalogicos <= maxRamaisAna - 7){
+                    if (ramaisAnalogicos <= maxRamaisAna - 5){
+                        placas += `19Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2} e Placa(s) analogicas ${placasNecessarias2 - 6}<br/>`;
+                    }else if (ramaisAnalogicos == maxRamaisAna - 4){
+                        placas += `20Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2} e Placa(s) analogicas ${placasNecessarias2 - 6}<br/>`;
+                    }
+                    
+                }else if (ramaisDigitais == maxRamaisDigital && ramaisAnalogicos <= maxRamaisAna - 3){
+                    placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2}`;
+                }else if (ramaisDigitais > 0 && ramaisAnalogicos <=  maxRamaisAna - 6){
+                    placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2}`;
+                }else if (ramaisDigitais > 0 && ramaisAnalogicos <=  maxRamaisAna - 3){
+                    placas += `Configuração válida! Placa(s) mistas necessarias: ${placasNecessarias2}`;
+                }else{
+                    placas += `Configuração válida! Placa(s) analogicas necessária(s): ${placasNecessarias2}`;
+                }
+            }
+            //////////////////////////////////////////////////////////////////////////////////////////////////
+            if(linhasAnalogicas > 0){
+                placas += `Linhas Analógicas: ${Math.ceil(linhasAnalogicas / 2)} placas<br>`;
+            }
+            if(linhasDigitais > 0){
+                placas += `Linhas Digitais: ${Math.ceil(linhasDigitais / 30)}(E1)<br>`;
+            }
+            if(linhasIP > 0){
+                placas += `Linhas IP: ${Math.ceil(linhasIP / 30)} placas<br>`;
+            }
+            break;
+        case 140:            
+            const maxSlots = 6;
+            const analogExtensions = parseInt(document.getElementById('ramaisAnalogicos').value) || 0;
+            const digitalExtensions = parseInt(document.getElementById('ramaisDigitais').value) || 0;
+            const analogLines = parseInt(document.getElementById('linhasAnalogicas').value) || 0;
+
+            const maxAnalogExtensions = 80;
+            const maxDigitalExtensions = 20;
+            const maxAnalogLines = 24;
+
+            const maxAnalogBoard24 = 3;
+            const maxMixedBoard = 5;
+            const maxAnalogTrunks = 3;
+
+            let analogBoard24 = 0;
+            let analogBoard16 = 0;
+            let mixedBoard = 0;
+            let analogTrunks = 0;
+            let slotsUsed = 0;
+            slotMax = 6;
+            // Verificar as restrições de ramais analógicos
+            if (analogExtensions > maxAnalogExtensions) {
+                document.getElementById('result').innerText = 'Ramais analógicos excedem o máximo permitido de 80.';
+                return;
+            }
+
+            // Verificar as restrições de ramais digitais
+            if (digitalExtensions > maxDigitalExtensions) {
+                document.getElementById('result').innerText = 'Ramais digitais excedem o máximo permitido de 20.';
+                return;
+            }
+
+            // Verificar as restrições de linhas analógicas
+            if (analogLines > maxAnalogLines) {
+                document.getElementById('result').innerText = 'Linhas analógicas excedem o máximo permitido de 24.';
+                return;
+            }
+
+            // Calcular as placas necessárias começando pelas mistas
+            mixedBoard = Math.min(Math.ceil(digitalExtensions / 4), maxMixedBoard);
+            const mixedBoardAnalogCapacity = mixedBoard * 12;
+            const mixedBoardDigitalCapacity = mixedBoard * 4;
+
+            let remainingAnalogExtensions = analogExtensions - mixedBoardAnalogCapacity;
+            let remainingDigitalExtensions = digitalExtensions - mixedBoardDigitalCapacity;
+
+            if (remainingAnalogExtensions > 0) {
+                analogBoard24 = Math.min(Math.floor(remainingAnalogExtensions / 24), maxAnalogBoard24);
+                remainingAnalogExtensions -= analogBoard24 * 24;
+                slotsUsed += analogBoard24;
+            }
+
+            if (remainingAnalogExtensions > 0) {
+                analogBoard16 = Math.ceil(remainingAnalogExtensions / 16);
+                slotsUsed += analogBoard16;
+            }
+
+            if (analogLines > 0) {
+                analogTrunks = Math.ceil(analogLines / 8);
+                slotsUsed += analogTrunks;
+            }
+
+            slotsUsed += mixedBoard;
+            if(ramaisIP > 0 || linhasIP > 0){
+                slotsUsed = slotsUsed + 1
+            }
+            if (linhasDigitais > 0){
+                slotsUsed = slotsUsed + 1
+            }
+                placas += `Placas de 24 Ramais Analógicos: ${analogBoard24}<br>`;
+                placas += `Placas de 16 Ramais Analógicos: ${analogBoard16}<br>`;
+                placas += `Placas de 4 Ramais Digitais e 12 Ramais Analógicos: ${mixedBoard}<br>`;
+                placas += `Placas de 8 Troncos Analógicos: ${analogTrunks}<br>`;
+                placas += `Linhas Digitais: ${Math.ceil(linhasDigitais / 30)}(E1)<br>`;
+            break;
+        case 220:
+                const analogExtensions220 = parseInt(document.getElementById('ramaisAnalogicos').value) || 0;
+                const digitalExtensions220 = parseInt(document.getElementById('ramaisDigitais').value) || 0;
+                const analogLines220 = parseInt(document.getElementById('linhasAnalogicas').value) || 0;
+
+                const maxAnalogExtensions220 = 160;
+                const maxDigitalExtensions220 = 40;
+                const maxAnalogLines220 = 24;
+                const maxSlots220 = 11;
+
+                const maxAnalogBoard24220 = 6;
+                const maxMixedBoard220 = 10;
+                const maxAnalogTrunks220 = 3;
+
+                let analogBoard24220 = 0;
+                let analogBoard16220 = 0;
+                let mixedBoard220 = 0;
+                let analogTrunks220 = 0;
+                let slotsUsed220 = 0;
+
+                // Verificar as restrições de ramais analógicos
+                if (analogExtensions220 > maxAnalogExtensions220) {
+                    document.getElementById('result').innerText = 'Ramais analógicos excedem o máximo permitido de 160.';
+                    return;
+                }
+
+                // Verificar as restrições de ramais digitais
+                if (digitalExtensions220 > maxDigitalExtensions220) {
+                    document.getElementById('result').innerText = 'Ramais digitais excedem o máximo permitido de 44.';
+                    return;
+                }
+
+                // Verificar as restrições de linhas analógicas
+                if (analogLines220 > maxAnalogLines220) {
+                    document.getElementById('result').innerText = 'Linhas analógicas excedem o máximo permitido de 24.';
+                    return;
+                }
+
+                // Calcular as placas necessárias começando pelas mistas
+                mixedBoard220 = Math.min(Math.ceil(digitalExtensions220 / 4), maxMixedBoard220);
+                const mixedBoardAnalogCapacity220 = mixedBoard220 * 12;
+                const mixedBoardDigitalCapacity220 = mixedBoard220 * 4;
+
+                let remainingAnalogExtensions220 = analogExtensions220 - mixedBoardAnalogCapacity220;
+                let remainingDigitalExtensions220 = digitalExtensions220 - mixedBoardDigitalCapacity220;
+
+                if (remainingAnalogExtensions220 > 0) {
+                    analogBoard24220 = Math.min(Math.floor(remainingAnalogExtensions220 / 24), maxAnalogBoard24220);
+                    remainingAnalogExtensions220 -= analogBoard24220 * 24;
+                    slotsUsed220 += analogBoard24220;
+                }
+
+                if (remainingAnalogExtensions220 > 0) {
+                    analogBoard16220 = Math.ceil(remainingAnalogExtensions220 / 16);
+                    slotsUsed220 += analogBoard16220;
+                }
+
+                if (analogLines220 > 0) {
+                    analogTrunks220 = Math.ceil(analogLines220 / 8);
+                    slotsUsed220 += analogTrunks220;
+                }
+
+                slotsUsed220 += mixedBoard220;
+
+                // Verificar se o número de slots excede o máximo permitido
+                if (slotsUsed220 > maxSlots220) {
+                    document.getElementById('result').innerText = `Número de slots utilizados (${slotsUsed220}) excede o máximo permitido de 11.`;
+                    return;
+                }
+
+                placas += `Placas de 24 Ramais Analógicos: ${analogBoard24220}<br>`;
+                placas += `Placas de 16 Ramais Analógicos: ${analogBoard16220}<br>`;
+                placas += `Placas de 4 Ramais Digitais e 12 Ramais Analógicos: ${mixedBoard220}<br>`;
+                placas += `Placas de 8 Troncos Analógicos: ${analogTrunks220}<br>`;
+                placas += `Linhas Digitais: ${Math.ceil(linhasDigitais / 30)}(E1)<br>`;
+            break;
+        case 300:
+                const analogExtensions300 = parseInt(document.getElementById('ramaisAnalogicos').value) || 0;
+                const digitalExtensions300 = parseInt(document.getElementById('ramaisDigitais').value) || 0;
+                const analogLines300 = parseInt(document.getElementById('linhasAnalogicas').value) || 0;
+
+                const maxAnalogExtensions300 = 240;
+                const maxDigitalExtensions300 = 40;
+                const maxAnalogLines300 = 24;
+                const maxSlots300 = 11;
+
+                const maxAnalogBoard24300 = 10;
+                const maxMixedBoard300 = 10;
+                const maxAnalogTrunks300 = 3;
+
+                let analogBoard24300 = 0;
+                let analogBoard16300 = 0;
+                let mixedBoard300 = 0;
+                let analogTrunks300 = 0;
+                let slotsUsed300 = 0;
+
+                // Verificar as restrições de ramais analógicos
+                if (analogExtensions300 > maxAnalogExtensions300) {
+                    document.getElementById('result').innerText = 'Ramais analógicos excedem o máximo permitido de 160.';
+                    return;
+                }
+
+                // Verificar as restrições de ramais digitais
+                if (digitalExtensions300 > maxDigitalExtensions300) {
+                    document.getElementById('result').innerText = 'Ramais digitais excedem o máximo permitido de 44.';
+                    return;
+                }
+
+                // Verificar as restrições de linhas analógicas
+                if (analogLines300 > maxAnalogLines300) {
+                    document.getElementById('result').innerText = 'Linhas analógicas excedem o máximo permitido de 24.';
+                    return;
+                }
+
+                // Calcular as placas necessárias começando pelas mistas
+                mixedBoard300 = Math.min(Math.ceil(digitalExtensions300 / 4), maxMixedBoard300);
+                const mixedBoardAnalogCapacity300 = mixedBoard300 * 12;
+                const mixedBoardDigitalCapacity300 = mixedBoard300 * 4;
+
+                let remainingAnalogExtensions300 = analogExtensions300 - mixedBoardAnalogCapacity300;
+                let remainingDigitalExtensions300 = digitalExtensions300 - mixedBoardDigitalCapacity300;
+
+                if (remainingAnalogExtensions300 > 0) {
+                    analogBoard24300 = Math.min(Math.floor(remainingAnalogExtensions300 / 24), maxAnalogBoard24300);
+                    remainingAnalogExtensions300 -= analogBoard24300 * 24;
+                    slotsUsed300 += analogBoard24300;
+                }
+
+                if (remainingAnalogExtensions300 > 0) {
+                    analogBoard16300 = Math.ceil(remainingAnalogExtensions300 / 16);
+                    slotsUsed300 += analogBoard16300;
+                }
+
+                if (analogLines300 > 0) {
+                    analogTrunks300 = Math.ceil(analogLines300 / 8);
+                    slotsUsed300 += analogTrunks300;
+                }
+
+                slotsUsed300 += mixedBoard300;
+
+                // Verificar se o número de slots excede o máximo permitido
+                if (slotsUsed300 > maxSlots300) {
+                    document.getElementById('result').innerText = `Número de slots utilizados (${slotsUsed300}) excede o máximo permitido de 11.`;
+                    return;
+                }
+
+                placas += `Placas de 24 Ramais Analógicos: ${analogBoard24300}<br>`;
+                placas += `Placas de 16 Ramais Analógicos: ${analogBoard16300}<br>`;
+                placas += `Placas de 4 Ramais Digitais e 12 Ramais Analógicos: ${mixedBoard300}<br>`;
+                placas += `Placas de 8 Troncos Analógicos: ${analogTrunks300}<br>`;
+                placas += `Linhas Digitais: ${Math.ceil(linhasDigitais / 30)}(E1)<br>`;
+            break;
+    }
+    return placas;
+}
+
+function calcularPlacasIP(modelo, ramaisIP) {
+    let placasIP = "";
+    switch (modelo) {
+        case 68:
+            placasIP += `Ramais IP - IPE: ${Math.ceil(ramaisIP / 30)} placas<br>`;
+            placasIP += `Ramais IP - Codec: ${Math.ceil(ramaisIP / 30)} placas<br>`;
+            break;
+        case 140:
+        case 220:
+        case 300:
+            placasIP += `Ramais IP - IPE: ${Math.ceil(ramaisIP / 40)} placas<br>`;
+            placasIP += `Ramais IP - Codec: ${Math.ceil(ramaisIP / 40)} placas<br>`;
+            break;
+    }
+    return placasIP;
+}
+
+</script>
+
+</body>
+</html>
